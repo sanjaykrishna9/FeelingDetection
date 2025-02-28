@@ -66,56 +66,44 @@ class AdminHome:
         print("started...")
         path = self.fpath.get().strip()
         print(path)
-        # Initialize recognizer class (for recognizing the speech)
+
+        # Initialize recognizer class
         r = sr.Recognizer()
 
-        # Reading Audio file as source
-        # listening the audio file and store in audio_text variable
-        with sr.AudioFile(path) as source:
-            audio_text = r.listen(source)
+        try:
+            # Reading audio file
+            with sr.AudioFile(path) as source:
+                audio_text = r.record(source)  # Use record() instead of listen()
 
-            # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
-            try:
+            # Convert speech to text
+            text = r.recognize_google(audio_text)
+            print('Converting audio transcripts into text ...')
+            print(text)
 
-                # using google speech recognition
-                text = r.recognize_google(audio_text)
-                print('Converting audio transcripts into text ...')
-                print(text)
+            paragraph = text
 
-                paragraph = text
+            lines_list = tokenize.sent_tokenize(paragraph)
+            print(lines_list)
 
-                lines_list = tokenize.sent_tokenize(paragraph)
-                print(lines_list)
+            NEG = NEU = POS = 0
 
-                NEG = NEU = POS = 0
+            sid = SentimentIntensityAnalyzer()  # Initialize once, outside loop
+            for sentence in lines_list:
+                ss = sid.polarity_scores(sentence)
+                print(f"Sentence: {sentence}, Scores: {ss}")
 
-                for sentence in lines_list:
-                    sid = SentimentIntensityAnalyzer()
-                    # print(sentence)
+                NEG += ss.get("neg", 0)
+                NEU += ss.get("neu", 0)
+                POS += ss.get("pos", 0)
 
-                    ss = sid.polarity_scores(sentence)
-                    # print(ss)
-                    k = ss.keys()
-                    p = list(k)
-                    # print("P=",p)
+            if NEG > max(NEU, POS):
+                print(f"Negative Emotion {NEG * 100:.2f}%")
+            elif POS > max(NEG, NEU):
+                print(f"Positive Emotion {POS * 100:.2f}%")
+            else:
+                print(f"Neutral Emotion {NEU * 100:.2f}%")
 
-                    print("Negative:", ss.get(p[0]), ",Neutral:", ss.get(p[1]), ",Positive:", ss.get(p[2]), ",Sent:",
-                          sentence)
-                    NEG = NEG + ss.get(p[0])
-                    NEU = NEU + ss.get(p[1])
-                    POS = POS + ss.get(p[2])
-                if NEG > NEU:
-                    if NEG > POS:
-                        print("Negative Emotion", NEG * 100, "%")
-                    else:
-                        print("Positive Emotion", POS * 100, "%")
-                else:
-                    if NEU > POS:
-                        print("Neutral Emotion", NEU * 100, "%")
-                    else:
-                        print("Positive Emotion", POS * 100, "%")
-
-            except:
-                print('Sorry.. run again...')
+        except Exception as e:
+            print(f"Error: {e}")
 # cp=Tk()
 # w=AdminHome(cp)
